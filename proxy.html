@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mastodon Proxy</title>
+</head>
+<body>
+    <script>
+        window.addEventListener('message', function(event) {
+            const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+
+            if (event.data.type === 'fetchMastodonData') {
+                fetch(proxyUrl + event.data.url, {
+                    headers: {
+                        'Authorization': `Bearer ${event.data.accessToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    event.source.postMessage({ type: 'mastodonData', data: data }, event.origin);
+                })
+                .catch(error => {
+                    event.source.postMessage({ type: 'mastodonError', error: error.message }, event.origin);
+                });
+            } else if (event.data.type === 'postMastodonStatus') {
+                fetch(proxyUrl + event.data.url, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${event.data.accessToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status: event.data.status })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    event.source.postMessage({ type: 'mastodonStatusPosted', data: data }, event.origin);
+                })
+                .catch(error => {
+                    event.source.postMessage({ type: 'mastodonError', error: error.message }, event.origin);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
+
